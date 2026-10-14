@@ -61,85 +61,101 @@ Implemented in `SpecificGasConstant()`.
 
 ---
 
-### 1.2 The Vandenkerckhove function
-
-Several isentropic relations share a recurring combination of $\gamma$ terms, usually called the Vandenkerckhove function:
-
-$$
-\Gamma(\gamma) = \sqrt{\gamma}\left(\frac{2}{\gamma+1}\right)^{\frac{\gamma+1}{2(\gamma-1)}}
-$$
-
-Implemented in `VandenkerckhoveFunction()`.
-
----
-
-### 1.3 Characteristic velocity, $c^*$
-
-$c^*$ measures how effectively the combustion chamber converts propellant chemical energy into hot, high-pressure gas — it depends only on the propellant combination and chamber conditions, **not** on the nozzle:
-
-$$
-c^* = \frac{\sqrt{R T_c}}{\Gamma(\gamma)}
-$$
-
-Implemented in `CharacteristicVelocity()`. A real chamber never reaches the ideal value (incomplete mixing, finite reaction rate, heat loss to the walls), so the code scales it by an efficiency:
-
-$$
-c^*_{\text{real}} = \eta_{c^*} \, c^*_{\text{ideal}}, \qquad \eta_{c^*} \approx 0.90\text{–}0.98
-$$
-
----
-
-### 1.4 Isentropic exit Mach number
-
-For isentropic flow, the static-to-chamber pressure ratio at any station sets the local Mach number:
-
-$$
-\frac{P}{P_c} = \left(1+\frac{\gamma-1}{2}M^2\right)^{-\frac{\gamma}{\gamma-1}}
-$$
-
-Solved for $M$, this gives the exit Mach number from the exit pressure ratio:
-
-$$
-M_e = \sqrt{\frac{2}{\gamma-1}\left[\left(\frac{P_e}{P_c}\right)^{-\frac{\gamma-1}{\gamma}}-1\right]}
-$$
-
-Implemented in `ExitMachFromPressureRatio()`.
-
----
-
-### 1.5 Area ratio from Mach number
-
-The isentropic area–Mach relation gives the nozzle area ratio needed to reach a given Mach number:
-
-$$
-\frac{A}{A^*} = \frac{1}{M}\left[\frac{2}{\gamma+1}\left(1+\frac{\gamma-1}{2}M^2\right)\right]^{\frac{\gamma+1}{2(\gamma-1)}}
-$$
-
-Implemented in `AreaRatioFromMach()`; used to convert $M_e$ into the expansion ratio $\varepsilon = A_e/A_t$.
-
----
-
-### 1.6 Thrust coefficient, $C_F$
-
-$C_F$ is the "amplification" the nozzle gives to the basic $P_c A_t$ force. It has a momentum term (always positive) and a pressure term (zero only when the nozzle is *ideally expanded*, $P_e = P_a$):
-
-$$
-C_F = \underbrace{\sqrt{\frac{2\gamma^2}{\gamma-1}\left(\frac{2}{\gamma+1}\right)^{\frac{\gamma+1}{\gamma-1}}\left[1-\left(\frac{P_e}{P_c}\right)^{\frac{\gamma-1}{\gamma}}\right]}}_{\text{momentum term}} \;+\; \underbrace{\varepsilon\,\frac{P_e-P_a}{P_c}}_{\text{pressure term}}
-$$
-
-Implemented in `ThrustCoefficient()`.
-
----
-
 ## 2. Chamber & nozzle geometry (`Chamber.py`)
 
-### 2.1 Characteristic length, $L^*$, and chamber volume
+`Chamber.py` is responsible for sizing the combustion chamber and nozzle geometry based on the throat area, characteristic length ($L^*$), and contraction ratio. The combustion chamber is where the propellant burns, generating high-pressure, high-temperature gas that expands through the nozzle to produce thrust.
 
-$L^*$ is an empirical, propellant- and injector-dependent number representing how much chamber volume the gas needs to finish reacting before reaching the throat. It defines the chamber volume (injector face to throat) directly:
+### 2.1 Combustion chamber sizing
+
+The combustion chamber volume is defined by the characteristic length:
 
 $$
-V_c = L^* A_t
+V_c = L^* \cdot A_t
 $$
+
+Where:
+- $L^*$ is the characteristic chamber length, an empirical value depending on the propellant and combustion efficiency (typically 0.5–2 m for small liquid engines).
+- $A_t$ is the throat area.
+
+The chamber volume is split into two parts:
+1. **Cylindrical section**: The main body of the chamber.
+2. **Convergent cone**: The frustum-shaped section leading to the throat.
+
+The convergent cone's volume is calculated as:
+
+$$
+V_{\text{cone}} = \frac{\pi}{3} \cdot L_{\text{conv}} \cdot \left(R_c^2 + R_c \cdot R_t + R_t^2\right)
+$$
+
+Where:
+- $L_{\text{conv}}$ is the length of the convergent cone.
+- $R_c$ is the chamber radius.
+- $R_t$ is the throat radius.
+
+The cylindrical section's volume is then:
+
+$$
+V_{\text{cyl}} = V_c - V_{\text{cone}}
+$$
+
+The cylindrical length is:
+
+$$
+L_{\text{cyl}} = \frac{V_{\text{cyl}}}{A_c}
+$$
+
+Where $A_c$ is the chamber cross-sectional area, determined by the contraction ratio:
+
+$$
+A_c = C_R \cdot A_t
+$$
+
+The contraction ratio ($C_R$) can either be user-defined or estimated empirically using:
+
+$$
+C_R = 8 \cdot D_t^{-0.6} + 1.25
+$$
+
+Where $D_t$ is the throat diameter in centimeters.
+
+### 2.2 Nozzle sizing
+
+The nozzle geometry is sized based on the expansion ratio ($\varepsilon = A_e / A_t$) and the half-angle of the divergent cone. The nozzle exit radius is:
+
+$$
+R_e = R_t \cdot \sqrt{\varepsilon}
+$$
+
+The length of the divergent cone is:
+
+$$
+L_{\text{cone}} = \frac{R_e - R_t}{\tan(\alpha)}
+$$
+
+Where $\alpha$ is the half-angle of the divergent cone (commonly 15°).
+
+For reference, the 80%-bell-equivalent length is approximated as:
+
+$$
+L_{\text{bell, 80}} = 0.8 \cdot \frac{R_e - R_t}{\tan(15^\circ)}
+$$
+
+The divergence loss factor, which accounts for the radial component of the exit velocity in a conical nozzle, is:
+
+$$
+\lambda = \frac{1 + \cos(\alpha)}{2}
+$$
+
+### 2.3 Outputs
+
+The `Chamber.py` module calculates and returns the following:
+- **Chamber properties**:
+  - Contraction ratio ($C_R$) and its source (user-defined or empirical).
+  - Chamber diameter ($D_c$), cylindrical length ($L_{\text{cyl}}$), and total chamber volume ($V_c$).
+  - Convergent cone length ($L_{\text{conv}}$) and volume ($V_{\text{cone}}$).
+- **Nozzle properties**:
+  - Exit diameter ($D_e$), divergent cone length ($L_{\text{cone}}$), and 80%-bell-equivalent length ($L_{\text{bell, 80}}$).
+  - Divergence loss factor ($\lambda$).
 
 ---
 
@@ -171,10 +187,10 @@ $$
 
 ## 5. Assumptions & limitations
 
-- **1-D, isentropic, calorically perfect gas.**
+- **1-D, isentropic, ideal gas.**
 - **Combustion gas properties ($T_c$, $\gamma$, $M$) must come from a thermochemistry source.**
 - **N2O must actually be gaseous at the injector.**
-- **Discharge coefficients ($C_d$) are inputs, not outputs.**
+- **Discharge coefficients ($C_d$) are inputs, subject to user decision.**
 
 ---
 

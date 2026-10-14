@@ -17,9 +17,9 @@ import numpy as np
 
 
 #Empirical contraction ratio estimate, Ac/At = 8*Dt^-0.6 + 1.25 (Dt in cm).
-#A common first-pass curve fit for small liquid engines - only use this if you
-#haven't chosen your own contraction ratio; prefer a value you can justify
-#(3-6 is a common design range) over relying on this alone.
+#This is a common curve fit for small liquid engines - only use this if you
+#haven't chosen your own contraction ratio; a value you can justify is preferable
+#3-6 is a common design range
 
 def ContractionRatioEstimate(Dt_m):
 
@@ -28,11 +28,11 @@ def ContractionRatioEstimate(Dt_m):
     return 8 * Dt_cm**(-0.6) + 1.25
 
 
-#Size the chamber: contraction ratio, chamber diameter, and the cylindrical
+#Sizing the chamber: contraction ratio, chamber diameter, and the cylindrical
 #length needed once the convergent cone's volume is subtracted from L**At.
 #
-#Vc = L* * At                                   <- definition of L*
-#V_cone = (pi/3) * L_conv * (Rc^2 + Rc*Rt + Rt^2)   <- frustum (truncated cone) volume
+#Vc = L* * At  (definition of L*)
+#V_cone = (pi/3) * L_conv * (Rc^2 + Rc*Rt + Rt^2)   frustum (truncated cone) volume
 #V_cyl = Vc - V_cone
 #L_cyl = V_cyl / Ac
 #
