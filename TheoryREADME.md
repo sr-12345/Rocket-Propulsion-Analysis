@@ -49,7 +49,46 @@ This document explains the physics and equations behind `Engine.py`, `Chamber.py
 
 ## 1. Engine sizing (`Engine.py`)
 
-### 1.1 Specific gas constant
+### 1.1 Sizing the engine based on target thrust
+
+The engine is sized based on the **target thrust** ($F$) using the following steps:
+
+1. **Throat Area ($A_t$)**:
+   The throat area is calculated using the definition of the thrust coefficient ($C_F$):
+   $$
+   A_t = \frac{F}{C_F \cdot P_c}
+   $$
+   Here, $C_F$ depends on the nozzle geometry and pressure ratios.
+
+2. **Mass Flow Rate ($\dot{m}$)**:
+   The total mass flow rate is determined using the characteristic velocity ($c^*$):
+   $$
+   \dot{m} = \frac{P_c \cdot A_t}{c^*}
+   $$
+
+3. **Specific Impulse ($I_{sp}$)**:
+   The specific impulse is calculated as:
+   $$
+   I_{sp} = \frac{F}{\dot{m} \cdot g_0}
+   $$
+
+4. **Exit Area ($A_e$)**:
+   The exit area is determined using the expansion ratio ($\varepsilon$):
+   $$
+   A_e = \varepsilon \cdot A_t
+   $$
+
+5. **Throat and Exit Diameters**:
+   The throat and exit diameters are derived from their respective areas:
+   $$
+   D_t = 2 \sqrt{\frac{A_t}{\pi}}, \quad D_e = 2 \sqrt{\frac{A_e}{\pi}}
+   $$
+
+These calculations are implemented in the `SizeEngine()` function.
+
+---
+
+### 1.2 Specific gas constant
 
 The combustion gas's specific gas constant comes from the universal gas constant and the gas's molecular weight:
 
@@ -61,7 +100,7 @@ Implemented in `SpecificGasConstant()`.
 
 ---
 
-### 1.2 The Vandenkerckhove function
+### 1.3 The Vandenkerckhove function
 
 Several isentropic relations share a recurring combination of $\gamma$ terms, usually called the Vandenkerckhove function:
 
@@ -73,7 +112,7 @@ Implemented in `VandenkerckhoveFunction()`.
 
 ---
 
-### 1.3 Characteristic velocity, $c^*$
+### 1.4 Characteristic velocity, $c^*$
 
 $c^*$ measures how effectively the combustion chamber converts propellant chemical energy into hot, high-pressure gas — it depends only on the propellant combination and chamber conditions, **not** on the nozzle:
 
@@ -89,37 +128,7 @@ $$
 
 ---
 
-### 1.4 Isentropic exit Mach number
-
-For isentropic flow, the static-to-chamber pressure ratio at any station sets the local Mach number:
-
-$$
-\frac{P}{P_c} = \left(1+\frac{\gamma-1}{2}M^2\right)^{-\frac{\gamma}{\gamma-1}}
-$$
-
-Solved for $M$, this gives the exit Mach number from the exit pressure ratio:
-
-$$
-M_e = \sqrt{\frac{2}{\gamma-1}\left[\left(\frac{P_e}{P_c}\right)^{-\frac{\gamma-1}{\gamma}}-1\right]}
-$$
-
-Implemented in `ExitMachFromPressureRatio()`.
-
----
-
-### 1.5 Area ratio from Mach number
-
-The isentropic area–Mach relation gives the nozzle area ratio needed to reach a given Mach number:
-
-$$
-\frac{A}{A^*} = \frac{1}{M}\left[\frac{2}{\gamma+1}\left(1+\frac{\gamma-1}{2}M^2\right)\right]^{\frac{\gamma+1}{2(\gamma-1)}}
-$$
-
-Implemented in `AreaRatioFromMach()`; used to convert $M_e$ into the expansion ratio $\varepsilon = A_e/A_t$.
-
----
-
-### 1.6 Thrust coefficient, $C_F$
+### 1.5 Thrust coefficient, $C_F$
 
 $C_F$ is the "amplification" the nozzle gives to the basic $P_c A_t$ force. It has a momentum term (always positive) and a pressure term (zero only when the nozzle is *ideally expanded*, $P_e = P_a$):
 
@@ -130,6 +139,25 @@ $$
 Implemented in `ThrustCoefficient()`.
 
 ---
+
+### 1.6 Splitting the Total Mass Flow Rate
+
+Once the total mass flow rate ($\dot{m}$) is calculated, it is split into **oxidizer** and **fuel** mass flow rates based on the oxidizer-to-fuel ratio (O/F):
+
+$$
+\dot{m}_{\text{oxidizer}} = \dot{m} \cdot \frac{\text{O/F}}{1 + \text{O/F}}
+$$
+
+$$
+\dot{m}_{\text{fuel}} = \dot{m} - \dot{m}_{\text{oxidizer}}
+$$
+
+Where:
+- $\dot{m}_{\text{oxidizer}}$: Oxidizer mass flow rate (e.g., N2O).
+- $\dot{m}_{\text{fuel}}$: Fuel mass flow rate (e.g., IPA).
+- O/F: Oxidizer-to-fuel ratio, a design parameter based on the propellant combination.
+
+These calculations are implemented in the `SplitMassFlow()` function in `Engine.py`.
 
 ## 2. Chamber & nozzle geometry (`Chamber.py`)
 
@@ -171,7 +199,7 @@ $$
 
 ## 5. Assumptions & limitations
 
-- **1-D, isentropic, calorically perfect gas.**
+- **1-D, isentropic, ideal gas.**
 - **Combustion gas properties ($T_c$, $\gamma$, $M$) must come from a thermochemistry source.**
 - **N2O must actually be gaseous at the injector.**
 - **Discharge coefficients ($C_d$) are inputs, not outputs.**

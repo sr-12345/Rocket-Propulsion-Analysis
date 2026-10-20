@@ -24,7 +24,7 @@ APP_VERSION = "1.2.0"
 
 #Each section is a list of (key, label, unit, default) tuples
 
-#Engine performance targets -> feeds Engine.py (SizeEngine)
+#Engine performance targets feeds Engine.py (SizeEngine)
 ENGINE_FIELDS = [
     ("F_target", "Target Thrust", "N", "50"),
     ("P_a", "Ambient Pressure", "Pa", "101325"),
