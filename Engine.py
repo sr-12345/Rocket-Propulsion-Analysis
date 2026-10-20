@@ -1,7 +1,6 @@
-#Sizes the throat and exit of a converging-diverging nozzle from a target thrust,
-#using standard 1-D isentropic (ideal) rocket relations, then scales by efficiencies
-#to get "real" performance. Also splits the resulting mass flow into oxidizer/fuel
-#mass flows using your target O/F ratio, so those numbers can feed straight into IPA.py / N2O.py.
+#Sizes the throat and exit of the nozzle from a target thrust, using standard 1-D isentropic (ideal) rocket relations, 
+#then scales by efficiencies to get "real" performance. Also splits the resulting mass flow into oxidizer/fuel
+#mass flows using user target O/F ratio, so those numbers can feed straight into IPA.py / N2O.py.
 
 
 
@@ -9,14 +8,12 @@ from UserInputs import F_target, P_c, P_a, OF_ratio, Tc, Gamma_gas, MW_gas, eta_
 import numpy as np
 
 R_universal = 8314.46   #universal gas constant, J/(kmol K)
-g0 = 9.80665             #standard gravity, m/s^2
+g0 = 9.80665             #standard gravity
 
 
 #Specific gas constant for the combustion gas
 
 def SpecificGasConstant(MW_gas):
-
-    #R = R_universal / MW    (MW in g/mol == kg/kmol)
 
     return R_universal / MW_gas
 
@@ -43,7 +40,7 @@ def ExitMachFromPressureRatio(Pe_over_Pc, Gamma_gas):
     return np.sqrt(2 / (Gamma_gas - 1) * (Pe_over_Pc**(-(Gamma_gas - 1) / Gamma_gas) - 1))
 
 
-#Area ratio Ae/At for a given exit Mach number (isentropic area-Mach relation)
+#Area ratio Ae/At for a given exit Mach number
 
 def AreaRatioFromMach(Me, Gamma_gas):
 
@@ -80,8 +77,8 @@ def ThrustCoefficient(Gamma_gas, P_c, P_e, P_a):
 
 #Size the engine (throat, exit, mass flow, Isp) for a target thrust F.
 #
-#At   = F / (CF * Pc)          <- definition of thrust coefficient, rearranged
-#mdot = Pc * At / c*           <- definition of c*, rearranged
+#At   = F / (CF * Pc)          definition of thrust coefficient, rearranged
+#mdot = Pc * At / c*           definition of c*, rearranged
 #Isp  = F / (mdot * g0)
 #
 #P_e defaults to P_a (ideal/on-design expansion). Pass a different P_e, or use
@@ -130,7 +127,7 @@ def SizeEngine(F_target, P_c, P_a, Tc, Gamma_gas, MW_gas, eta_cstar, eta_cf, P_e
 
 #Split total mass flow into oxidizer (N2O) and fuel (IPA) mass flows for a
 #target O/F ratio (OF = mdot_ox / mdot_fuel):
-#
+
 #mdot_ox   = mdot * OF / (1 + OF)
 #mdot_fuel = mdot / (1 + OF)
 
@@ -166,7 +163,7 @@ def EpsilonToPe(epsilon, Gamma_gas, P_c):
 
 
 #Characteristic (stay) time of the combustion gas in the chamber:
-#tau = L* * c* / (R * Tc)     - a useful cross-check alongside L* itself.
+#tau = L* * c* / (R * Tc) - a useful cross-check alongside L* itself.
 
 def StayTime(L_star, cstar, R_gas, Tc):
 

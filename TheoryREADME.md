@@ -161,13 +161,99 @@ These calculations are implemented in the `SplitMassFlow()` function in `Engine.
 
 ## 2. Chamber & nozzle geometry (`Chamber.py`)
 
-### 2.1 Characteristic length, $L^*$, and chamber volume
+`Chamber.py` is responsible for sizing the combustion chamber and nozzle geometry based on the throat area, characteristic length ($L^*$), and contraction ratio. The combustion chamber is where the propellant burns, generating high-pressure, high-temperature gas that expands through the nozzle to produce thrust.
 
-$L^*$ is an empirical, propellant- and injector-dependent number representing how much chamber volume the gas needs to finish reacting before reaching the throat. It defines the chamber volume (injector face to throat) directly:
+### 2.1 Combustion chamber sizing
+
+The combustion chamber volume is defined by the characteristic length:
 
 $$
-V_c = L^* A_t
+V_c = L^* \cdot A_t
 $$
+
+Where:
+- $L^*$ is the characteristic chamber length, an empirical value depending on the propellant and combustion efficiency (typically 0.5–2 m for small liquid engines).
+- $A_t$ is the throat area.
+
+The chamber volume is split into two parts:
+1. **Cylindrical section**: The main body of the chamber.
+2. **Convergent cone**: The frustum-shaped section leading to the throat.
+
+The convergent cone's volume is calculated as:
+
+$$
+V_{\text{cone}} = \frac{\pi}{3} \cdot L_{\text{conv}} \cdot \left(R_c^2 + R_c \cdot R_t + R_t^2\right)
+$$
+
+Where:
+- $L_{\text{conv}}$ is the length of the convergent cone.
+- $R_c$ is the chamber radius.
+- $R_t$ is the throat radius.
+
+The cylindrical section's volume is then:
+
+$$
+V_{\text{cyl}} = V_c - V_{\text{cone}}
+$$
+
+The cylindrical length is:
+
+$$
+L_{\text{cyl}} = \frac{V_{\text{cyl}}}{A_c}
+$$
+
+Where $A_c$ is the chamber cross-sectional area, determined by the contraction ratio:
+
+$$
+A_c = C_R \cdot A_t
+$$
+
+The contraction ratio ($C_R$) can either be user-defined or estimated empirically using:
+
+$$
+C_R = 8 \cdot D_t^{-0.6} + 1.25
+$$
+
+Where $D_t$ is the throat diameter in centimeters.
+
+### 2.2 Nozzle sizing
+
+The nozzle geometry is sized based on the expansion ratio ($\varepsilon = A_e / A_t$) and the half-angle of the divergent cone. The nozzle exit radius is:
+
+$$
+R_e = R_t \cdot \sqrt{\varepsilon}
+$$
+
+The length of the divergent cone is:
+
+$$
+L_{\text{cone}} = \frac{R_e - R_t}{\tan(\alpha)}
+$$
+
+Where $\alpha$ is the half-angle of the divergent cone (commonly 15°).
+
+For reference, the 80%-bell-equivalent length is approximated as:
+
+$$
+L_{\text{bell, 80}} = 0.8 \cdot \frac{R_e - R_t}{\tan(15^\circ)}
+$$
+
+The divergence loss factor, which accounts for the radial component of the exit velocity in a conical nozzle, is:
+
+$$
+\lambda = \frac{1 + \cos(\alpha)}{2}
+$$
+
+### 2.3 Outputs
+
+The `Chamber.py` module calculates and returns the following:
+- **Chamber properties**:
+  - Contraction ratio ($C_R$) and its source (user-defined or empirical).
+  - Chamber diameter ($D_c$), cylindrical length ($L_{\text{cyl}}$), and total chamber volume ($V_c$).
+  - Convergent cone length ($L_{\text{conv}}$) and volume ($V_{\text{cone}}$).
+- **Nozzle properties**:
+  - Exit diameter ($D_e$), divergent cone length ($L_{\text{cone}}$), and 80%-bell-equivalent length ($L_{\text{bell, 80}}$).
+  - Divergence loss factor ($\lambda$).
 
 ---
 
@@ -202,7 +288,7 @@ $$
 - **1-D, isentropic, ideal gas.**
 - **Combustion gas properties ($T_c$, $\gamma$, $M$) must come from a thermochemistry source.**
 - **N2O must actually be gaseous at the injector.**
-- **Discharge coefficients ($C_d$) are inputs, not outputs.**
+- **Discharge coefficients ($C_d$) are inputs, subject to user decision.**
 
 ---
 
